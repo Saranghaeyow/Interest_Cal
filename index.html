@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interest Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #14171f;
+    --card: #1b1f2a;
+    --border: #2a2f3e;
+    --accent: #f0c040;
+    --accent2: #4af0a0;
+    --text: #e8eaf0;
+    --muted: #6b7191;
+    --input-bg: #0d0f14;
+    --radius: 12px;
+    --glow: 0 0 24px rgba(240,192,64,0.18);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    overflow-x: hidden;
+  }
+
+  /* background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(240,192,64,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240,192,64,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 2.5rem;
+  }
+  .header .tag {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 2.2rem;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .header h1 span {
+    color: var(--accent);
+  }
+  .header p {
+    margin-top: 0.6rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* Card */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 30px; right: 30px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  /* Row of dropdowns */
+  .dropdowns-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .field label {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  select, input[type="number"], input[type="text"] {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.88rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+
+  .select-wrap {
+    position: relative;
+  }
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    pointer-events: none;
+    font-size: 0.8rem;
+  }
+
+  select:focus, input[type="number"]:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(240,192,64,0.12);
+  }
+
+  select option {
+    background: var(--card);
+    color: var(--text);
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
+  }
+
+  /* Days input (conditional) */
+  #days-field {
+    display: none;
+    margin-bottom: 1.5rem;
+    animation: slideIn 0.3s ease;
+  }
+  #days-field.visible {
+    display: flex;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Amount input */
+  .amount-field {
+    margin-bottom: 1.5rem;
+  }
+  .amount-wrap {
+    position: relative;
+  }
+  .amount-wrap .currency {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 0.85rem;
+    pointer-events: none;
+  }
+  .amount-wrap input {
+    padding-left: 2.2rem;
+  }
+
+  /* Calculate button */
+  .btn-calc {
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--accent);
+    color: #0d0f14;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+  }
+  .btn-calc:hover {
+    background: #f5d060;
+    box-shadow: var(--glow);
+    transform: translateY(-1px);
+  }
+  .btn-calc:active {
+    transform: translateY(0);
+  }
+
+  /* Result panel */
+  #result-panel {
+    display: none;
+    margin-top: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    animation: fadeUp 0.35s ease;
+  }
+  #result-panel.visible { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .result-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--accent2);
+    letter-spacing: -0.02em;
+    word-break: break-all;
+  }
+
+  .result-formula {
+    margin-top: 0.8rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+    padding-top: 0.8rem;
+  }
+  .result-formula span {
+    color: var(--accent);
+  }
+
+  /* Error */
+  .error-msg {
+    display: none;
+    font-size: 0.75rem;
+    color: #f06060;
+    margin-top: 0.5rem;
+  }
+  .error-msg.visible { display: block; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="header">
+    <span class="tag">// Finance Tool</span>
+    <h1>Interest <span>Calc</span></h1>
+    <p>Compute interest charges across monthly, bi-monthly, and daily cycles with precision rounding.</p>
+  </div>
+
+  <div class="card">
+
+    <!-- Dropdowns Row -->
+    <div class="dropdowns-row">
+      <div class="field">
+        <label>Interest Rate</label>
+        <div class="select-wrap">
+          <select id="interest-select">
+            <option value="0.0175">1.75%</option>
+            <option value="0.03">3%</option>
+            <option value="0.05">5%</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Period</label>
+        <div class="select-wrap">
+          <select id="period-select">
+            <option value="monthly">Monthly</option>
+            <option value="15days">Every 15 Days</option>
+            <option value="daily">Daily</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conditional: Days input (only for daily) -->
+    <div class="field" id="days-field">
+      <label>Number of Days</label>
+      <input type="number" id="days-input" placeholder="e.g. 10" min="1" step="1">
+      <span class="error-msg" id="days-error">Please enter a valid number of days.</span>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Amount Input -->
+    <div class="field amount-field">
+      <label>Principal Amount</label>
+      <div class="amount-wrap">
+        <span class="currency">₱</span>
+        <input type="text" id="amount-input" placeholder="0.00" inputmode="decimal">
+      </div>
+      <span class="error-msg" id="amount-error">Please enter a valid amount.</span>
+    </div>
+
+    <!-- Button -->
+    <button class="btn-calc" onclick="calculate()">Calculate Interest →</button>
+
+    <!-- Result -->
+    <div id="result-panel">
+      <div class="result-label">Interest Amount</div>
+      <div class="result-value" id="result-value">—</div>
+      <div class="result-formula" id="result-formula"></div>
+    </div>
+
+  </div>
+
+  <div class="footer">PRECISION · ROUNDING · 2 DECIMAL PLACES</div>
+</div>
+
+<script>
+  const periodSelect = document.getElementById('period-select');
+  const daysField    = document.getElementById('days-field');
+  const daysInput    = document.getElementById('days-input');
+  const daysError    = document.getElementById('days-error');
+  const amountInput  = document.getElementById('amount-input');
+  const amountError  = document.getElementById('amount-error');
+  const resultPanel  = document.getElementById('result-panel');
+  const resultValue  = document.getElementById('result-value');
+  const resultFormula= document.getElementById('result-formula');
+
+  // --- Live comma formatting for amount input ---
+  amountInput.addEventListener('input', () => {
+    let raw = amountInput.value.replace(/,/g, ''); // strip existing commas
+    // Allow only digits and one decimal point
+    raw = raw.replace(/[^\d.]/g, '');
+    const parts = raw.split('.');
+    if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+
+    // Add commas to integer part only
+    const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const decPart = parts[1] !== undefined ? '.' + parts[1] : '';
+
+    // Save cursor intent: chars from right before replacement
+    const cursorFromRight = amountInput.value.length - amountInput.selectionStart;
+    amountInput.value = intPart + decPart;
+    // Restore cursor
+    const newPos = Math.max(0, amountInput.value.length - cursorFromRight);
+    amountInput.setSelectionRange(newPos, newPos);
+  });
+
+  // Helper: get raw numeric value from comma-formatted input
+  function getRawAmount() {
+    return parseFloat(amountInput.value.replace(/,/g, ''));
+  }
+
+  // Show/hide days input based on period
+  periodSelect.addEventListener('change', () => {
+    if (periodSelect.value === 'daily') {
+      daysField.classList.add('visible');
+    } else {
+      daysField.classList.remove('visible');
+      daysInput.value = '';
+    }
+    resultPanel.classList.remove('visible');
+  });
+
+  function formatNumber(n) {
+    const rounded = Math.round(n * 100) / 100;
+    return rounded.toLocaleString('en-PH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function rateLabel(rate) {
+    return (rate * 100) + '%';
+  }
+
+  function calculate() {
+    let valid = true;
+
+    // Validate amount
+    const amount = getRawAmount();
+    if (!amountInput.value || isNaN(amount) || amount < 0) {
+      amountError.classList.add('visible');
+      valid = false;
+    } else {
+      amountError.classList.remove('visible');
+    }
+
+    const period = periodSelect.value;
+    const rate   = parseFloat(document.getElementById('interest-select').value);
+
+    // Validate days if daily
+    let days = null;
+    if (period === 'daily') {
+      days = parseFloat(daysInput.value);
+      if (!daysInput.value || isNaN(days) || days <= 0) {
+        daysError.classList.add('visible');
+        valid = false;
+      } else {
+        daysError.classList.remove('visible');
+      }
+    }
+
+    if (!valid) return;
+
+    let interest = 0;
+    let formula  = '';
+    const rLabel  = rateLabel(rate);
+
+    if (period === 'monthly') {
+      interest = amount * rate;
+      formula  = `<span>${formatNumber(amount)}</span> × <span>${rLabel}</span> = <span>${formatNumber(interest)}</span>`;
+    } else if (period === '15days') {
+      interest = (amount * rate) / 2;
+      formula  = `(<span>${formatNumber(amount)}</span> × <span>${rLabel}</span>) ÷ 2 = <span>${formatNumber(interest)}</span>`;
+    } else if (period === 'daily') {
+      const dailyRateRaw     = (amount * rate) / 30;
+      const dailyRateRounded = Math.round(dailyRateRaw * 100) / 100;
+      interest = dailyRateRounded * days;
+      formula  = `(<span>${formatNumber(amount)}</span> × <span>${rLabel}</span> ÷ 30) = <span>${formatNumber(dailyRateRounded)}</span> → × <span>${days} day${days !== 1 ? 's' : ''}</span> = <span>${formatNumber(interest)}</span>`;
+    }
+
+    resultValue.textContent = '₱ ' + formatNumber(interest);
+    resultFormula.innerHTML = formula;
+    resultPanel.classList.add('visible');
+  }
+
+  // Allow Enter key on inputs
+  [amountInput, daysInput].forEach(el => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+  });
+</script>
+</body>
+</html>
